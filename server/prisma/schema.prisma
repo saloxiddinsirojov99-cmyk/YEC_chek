@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum UserRole {
+  admin
+  seller
+}
+
+enum OrderStatus {
+  pending
+  delivering
+  pending_balance
+  completed
+  cancelled
+}
+
+model Branch {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  phone     String?
+  created_at DateTime @default(now())
+  users     User[]
+  orders    Order[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password_hash String
+  role         UserRole
+  branch_id    Int?
+  branch       Branch?  @relation(fields: [branch_id], references: [id], onDelete: SetNull)
+  created_at   DateTime @default(now())
+  orders       Order[]
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @default("")
+  description String?
+  price       Float
+  image_url   String?
+  is_active   Int      @default(1)
+  created_at  DateTime @default(now())
+  order_items OrderItem[]
+}
+
+model Order {
+  id             Int         @id @default(autoincrement())
+  order_number   String      @unique
+  branch_id      Int?
+  branch         Branch?     @relation(fields: [branch_id], references: [id], onDelete: SetNull)
+  seller_id      Int?
+  seller         User?       @relation(fields: [seller_id], references: [id], onDelete: SetNull)
+  customer_name  String
+  customer_phone String
+  customer_phone2 String     @default("")
+  customer_address String?
+  order_date     String
+  delivery_date  String
+  total_amount   Float
+  paid_amount    Float
+  note           String?
+  status         OrderStatus @default(pending)
+  created_at     DateTime    @default(now())
+  items          OrderItem[]
+}
+
+model OrderItem {
+  id              Int     @id @default(autoincrement())
+  order_id        Int
+  order           Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product_id      Int?
+  product         Product? @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  product_name    String
+  product_code    String  @default("")
+  width           Float   @default(0)
+  height          Float   @default(0)
+  quantity        Float
+  price           Float
+  discount_percent Float  @default(0)
+  note            String?
+}
+
+model Setting {
+  key   String @id
+  value String
+}
