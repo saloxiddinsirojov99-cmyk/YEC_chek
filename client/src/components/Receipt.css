@@ -1,0 +1,539 @@
+.receipt-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f3f4f6;
+  z-index: 1000;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.receipt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.2rem;
+  background: linear-gradient(135deg, var(--primary-color), #1e40af);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.receipt-header h2 {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.print-header-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.print-header-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.receipt-preview-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-bottom: 1px solid #f59e0b;
+}
+
+.receipt-preview-banner svg {
+  flex-shrink: 0;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.receipt-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+#print-area {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 1.5rem auto;
+  padding: 0.8cm;
+  background: white;
+  font-size: 10px;
+  line-height: 1.3;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.receipt {
+  display: flex;
+  flex-direction: column;
+}
+
+.receipt-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ====== LOGO SECTION - CENTERED ====== */
+.receipt-logo-section {
+  text-align: center;
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.receipt-logo-section .receipt-logo {
+  height: 80px;
+  width: auto;
+  display: inline-block;
+}
+
+/* ====== COMPANY INFO - CENTERED BELOW LOGO ====== */
+.receipt-company-info {
+  text-align: center;
+  margin-bottom: 0.6rem;
+}
+
+.company-name {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 0.15rem;
+}
+
+.company-detail {
+  font-size: 0.8rem;
+  color: #555;
+  line-height: 1.2;
+}
+
+.company-phone {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1a56db;
+  letter-spacing: 0.3px;
+}
+
+/* ====== ORDER INFO ====== */
+.receipt-info {
+  margin-bottom: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: #f9fafb;
+  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 1rem;
+}
+
+.info-row {
+  display: flex;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.label {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: auto;
+}
+
+.value {
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.customer-section {
+  margin-bottom: 0.5rem;
+}
+
+.customer-section h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.customer-info p {
+  font-size: 0.8rem;
+  margin-bottom: 0.15rem;
+}
+
+/* ====== ITEMS TABLE ====== */
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.items-table thead {
+  background: var(--primary-color);
+  color: white;
+}
+
+.items-table th {
+  padding: 0.3rem;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid var(--primary-color);
+}
+
+.items-table td {
+  padding: 0.3rem;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.items-table tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.item-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.item-note {
+  font-size: 0.7rem;
+  color: #666;
+  margin-top: 0.05rem;
+}
+
+.item-code {
+  font-size: 0.7rem;
+  color: #555;
+  margin-top: 0.05rem;
+  font-weight: 500;
+}
+
+.item-size {
+  font-size: 0.7rem;
+  color: #555;
+  margin-top: 0.05rem;
+  font-weight: 500;
+}
+
+/* ====== TOTALS / PRICING ====== */
+.totals-section {
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background: #f0f4ff;
+  border-left: 3px solid var(--primary-color);
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.total-row span:first-child {
+  font-weight: 600;
+}
+
+.amount {
+  font-weight: bold;
+  color: var(--primary-color);
+  text-align: right;
+  min-width: 100px;
+}
+
+.total-row.balance {
+  border-top: 1px solid #ddd;
+  padding-top: 0.2rem;
+  margin-top: 0.2rem;
+  color: var(--secondary-color);
+}
+
+.total-row.balance .amount {
+  color: var(--secondary-color);
+}
+
+/* Discount rows */
+.total-row.original span:first-child {
+  color: #888;
+}
+
+.total-row.original .amount {
+  color: #888;
+  text-decoration: line-through;
+}
+
+.total-row.discount-line {
+  font-size: 0.8rem;
+}
+
+.total-row.discount-line span:first-child {
+  color: #e53935;
+}
+
+.discount-amount {
+  color: #e53935 !important;
+}
+
+.total-row.final {
+  border-top: 1px solid var(--primary-color);
+  padding-top: 0.2rem;
+  margin-top: 0.2rem;
+  font-size: 0.95rem;
+}
+
+.total-row.final span:first-child {
+  color: var(--primary-color);
+}
+
+/* ====== TERMS ====== */
+.terms-section {
+  margin-bottom: 0.4rem;
+  font-size: 0.7rem;
+}
+
+.terms-section h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.terms-content p {
+  margin-bottom: 0.1rem;
+  color: #666;
+  line-height: 1.2;
+}
+
+/* ====== BOTTOM SECTION: QR (left) + Signature (right) ====== */
+.receipt-bottom-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 0.8rem;
+  margin-bottom: 0.4rem;
+  gap: 1rem;
+}
+
+.receipt-bottom-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.qr-code-container {
+  border: 1px solid #ddd;
+  padding: 4px;
+  display: inline-block;
+  background: white;
+}
+
+.qr-code-container canvas {
+  display: block;
+}
+
+.print-date {
+  font-size: 0.75rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.receipt-bottom-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.signature-section {
+  text-align: center;
+}
+
+.signature-line {
+  font-size: 1rem;
+  color: #333;
+  letter-spacing: 2px;
+}
+
+.signature-label {
+  font-size: 0.8rem;
+  color: #555;
+  margin-top: 2px;
+}
+
+.sana-text {
+  font-size: 0.75rem;
+  color: #555;
+  font-weight: 500;
+  text-align: right;
+}
+
+/* ====== FOOTER ====== */
+.receipt-footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+  font-weight: 600;
+  padding-top: 0.4rem;
+  border-top: 1px solid #ddd;
+  margin-top: auto;
+}
+
+.receipt-footer p {
+  margin: 0.1rem 0;
+}
+
+/* ====== PRINT STYLES ====== */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  .receipt-container {
+    position: static;
+    background: white;
+    overflow: visible;
+  }
+
+  .receipt-header,
+  .receipt-preview-banner {
+    display: none !important;
+  }
+
+  #print-area {
+    width: 100%;
+    min-height: auto;
+    margin: 0;
+    padding: 0.4cm;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .receipt {
+    page-break-after: avoid;
+  }
+
+  .receipt-logo-section .receipt-logo {
+    height: 80px;
+  }
+}
+
+/* ====== MOBILE ====== */
+@media (max-width: 768px) {
+  #print-area {
+    width: 100%;
+    padding: 0.5cm;
+    font-size: 9px;
+    margin: 1rem 0.5rem;
+  }
+
+  .items-table {
+    font-size: 0.7rem;
+  }
+
+  .items-table th,
+  .items-table td {
+    padding: 0.2rem;
+  }
+
+  .receipt-header h2 {
+    font-size: 0.95rem;
+  }
+
+  .print-header-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .receipt-logo-section .receipt-logo {
+    height: 60px;
+  }
+
+  .receipt-bottom-section {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .receipt-bottom-left {
+    align-items: center;
+  }
+
+  .receipt-bottom-right {
+    align-items: center;
+  }
+
+  .qr-code-container canvas {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}

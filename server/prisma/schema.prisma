@@ -50,6 +50,7 @@ model Product {
   description String?
   price       Float
   image_url   String?
+  category    String   @default("statick")
   is_active   Int      @default(1)
   created_at  DateTime @default(now())
   order_items OrderItem[]

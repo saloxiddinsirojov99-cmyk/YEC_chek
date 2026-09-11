@@ -1,0 +1,12 @@
+{
+  "name": "yec-mijoz-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix server run dev",
+    "backend:dev": "npm --prefix server run dev",
+    "start": "npm --prefix server start",
+    "db:push": "npm --prefix server run db:push",
+    "db:seed": "npm --prefix server run db:seed"
+  }
+}

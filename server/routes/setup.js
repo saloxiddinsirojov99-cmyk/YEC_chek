@@ -34,11 +34,11 @@ router.post('/seed', async (req, res) => {
     });
 
     // 2. Create default admin
-    const adminHash = hashPassword('admin123');
+    const adminHash = hashPassword('t.bmw.x7');
     const admin = await prisma.user.create({
       data: {
-        name: 'Administrator',
-        email: 'admin@yecgilam.uz',
+        name: 'Super Admin',
+        email: 'saloxiddinsirojov99@gmail.com',
         password_hash: adminHash,
         role: 'admin',
         branch_id: branch.id,
