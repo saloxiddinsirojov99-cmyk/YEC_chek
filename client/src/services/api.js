@@ -7,10 +7,17 @@
 //   3. Local development: http://localhost:5000/api
 // =====================================================
 
+// API URL aniqlash tartibi:
+// 1. VITE_API_URL env variable (Vercel Dashboard → Environment Variables)
+// 2. Local dev (port 5173) → localhost:5000
+// 3. Production fallback → backend Vercel URL
+const isLocalDev = typeof window !== 'undefined' && 
+  (window.location.port === '5173' || window.location.hostname === 'localhost');
+
 const API_URL = import.meta.env.VITE_API_URL 
-  || (typeof window !== 'undefined' && window.location.port === '5173'
+  || (isLocalDev
       ? 'http://localhost:5000/api'
-      : '/api');
+      : 'https://yec-backend-saller.vercel.app/api');
 
 // Vercel'da o'rnatish:
 //   Frontend: https://yec-sallers.vercel.app
