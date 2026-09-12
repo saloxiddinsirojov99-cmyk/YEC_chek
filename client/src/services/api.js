@@ -9,23 +9,15 @@
 
 // API URL aniqlash tartibi:
 // 1. VITE_API_URL env variable (Vercel Dashboard → Environment Variables)
-// 2. Local dev (port 5173) → localhost:5000
+// 2. Local dev (localhost / 127.0.0.1) → localhost:5000/api
 // 3. Production fallback → backend Vercel URL
 const isLocalDev = typeof window !== 'undefined' && 
-  (window.location.port === '5173' || window.location.hostname === 'localhost');
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 const API_URL = import.meta.env.VITE_API_URL 
   || (isLocalDev
       ? 'http://localhost:5000/api'
       : 'https://yec-backend-saller.vercel.app/api');
-
-// Vercel'da o'rnatish:
-//   Frontend: https://yec-sallers.vercel.app
-//   Backend:  https://yec-seller.vercel.app
-//
-// Vercel Dashboard → Frontend Project → Settings → Environment Variables:
-//   VITE_API_URL = https://yec-seller.vercel.app/api
-// =====================================================
 
 function getAuthHeader() {
   const token = localStorage.getItem('token');
@@ -36,6 +28,16 @@ function getAuthHeader() {
 }
 
 async function handleResponse(response) {
+  if (response.status === 401 || response.status === 403) {
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.error || 'Sessiya muddati tugagan yoki ruxsat etilmagan.');
+  }
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || errorData.error || 'Tizim xatoligi yuz berdi.');
@@ -71,38 +73,23 @@ export async function logoutUser() {
 }
 
 export async function loginUser(email, password) {
-  // --- Fallback admin login (works even if backend is down) ---
-  const DEFAULT_ADMIN_EMAIL = 'admin@yecgilam.uz';
-  const DEFAULT_ADMIN_PASSWORD = 'admin123';
-  if (email === DEFAULT_ADMIN_EMAIL && password === DEFAULT_ADMIN_PASSWORD) {
-    // Return a mock token and minimal user data
-    return {
-      token: 'default-admin-token',
-      user: {
-        id: 0,
-        name: 'Default Admin',
-        email: DEFAULT_ADMIN_EMAIL,
-        role: 'admin',
-        branch_id: null,
-        branch_name: null,
-      },
-      message: 'Logged in with fallback admin credentials',
-    };
-  }
-  // Normal flow – call backend API
   try {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    // Ensure we handle non-JSON responses gracefully
+    
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
-      let errorMsg = 'Login xatoligi';
-      try { const errJson = JSON.parse(errorText); errorMsg = errJson.message || errJson.error || errorMsg; } catch {}
+      let errorMsg = 'Login yoki parol noto\'g\'ri.';
+      try { 
+        const errJson = JSON.parse(errorText); 
+        errorMsg = errJson.message || errJson.error || errorMsg; 
+      } catch {}
       throw new Error(errorMsg);
     }
+
     const resJson = await response.json();
     if (resJson && resJson.data && resJson.data.token) {
       return resJson.data;

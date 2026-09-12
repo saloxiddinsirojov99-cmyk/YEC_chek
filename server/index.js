@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 5000;
 // ============================================================
 const allowedOrigins = [
   (process.env.FRONTEND_URL || 'https://yec-sallers.vercel.app').replace(/\/$/, ''),
+  'https://yec-chek.vercel.app',
   'https://yec-saller-front.vercel.app',
   'https://yec-sallers.vercel.app',
 ];
