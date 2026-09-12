@@ -164,7 +164,10 @@ app.use((err, req, res, next) => {
   
   res.status(500).json({ 
     success: false,
-    error: 'Ichki server xatoligi yuz berdi.' 
+    error: 'Ichki server xatoligi yuz berdi.',
+    debugMessage: err.message,
+    debugName: err.name,
+    debugStack: err.stack ? err.stack.split('\n').slice(0, 5).join('\n') : null
   });
 });
 
