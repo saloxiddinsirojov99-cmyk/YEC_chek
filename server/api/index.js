@@ -123,6 +123,26 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// Temporary debug endpoint - shows DB user count & emails (no passwords)
+app.get('/api/debug', async (req, res) => {
+  try {
+    const userCount = await prisma.user.count();
+    const productCount = await prisma.product.count();
+    const users = await prisma.user.findMany({
+      select: { id: true, email: true, role: true }
+    });
+    res.json({
+      success: true,
+      userCount,
+      productCount,
+      users,
+      dbUrlPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 40) + '...' : 'NOT_SET'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, stack: err.stack });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ 
