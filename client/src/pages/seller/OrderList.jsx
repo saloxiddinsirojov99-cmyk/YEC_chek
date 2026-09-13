@@ -4,7 +4,8 @@ import Layout from '../../components/Layout';
 import { getOrders, getOrderById, updateOrder, deleteOrder, getProducts, createOrder } from '../../services/api';
 import Receipt from '../../components/Receipt';
 import ProductSearchModal from '../../components/ProductSearchModal';
-import UzPhoneField, { toBackendPhone, getLocalDigits } from '../../components/UzPhoneField';
+import UzPhoneField, { toBackendPhone, getLocalDigits, formatPersonName } from '../../components/UzPhoneField';
+import UzDateField, { isValidDateDDMMYYYY, toBackendDate, toDisplayDate, getTodayDisplayDate } from '../../components/UzDateField';
 import {
   Box,
   Typography,
@@ -167,10 +168,14 @@ export default function OrderList() {
 
   // Enter key sequential navigation handlers
   const handleFirstNameKeyDown = (e) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       if (!formFields.first_name || !formFields.first_name.trim()) {
-        setFormErrors(prev => ({ ...prev, first_name: 'Ism kiritilishi shart' }));
+        setFormErrors(prev => ({ ...prev, first_name: 'Ism kiritilishi shart (faqat harflar, bo\'sh joy kiritilmaydi)' }));
         firstNameRef.current?.focus();
         return;
       }
@@ -181,10 +186,14 @@ export default function OrderList() {
   };
 
   const handleLastNameKeyDown = (e) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       if (!formFields.last_name || !formFields.last_name.trim()) {
-        setFormErrors(prev => ({ ...prev, last_name: 'Familiya kiritilishi shart' }));
+        setFormErrors(prev => ({ ...prev, last_name: 'Familiya kiritilishi shart (faqat harflar, bo\'sh joy kiritilmaydi)' }));
         lastNameRef.current?.focus();
         return;
       }
@@ -230,8 +239,11 @@ export default function OrderList() {
   const handleDeliveryDateKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (!formFields.delivery_date) {
-        setFormErrors(prev => ({ ...prev, delivery_date: 'Yetkazish kuni kiritilishi shart' }));
+      if (!formFields.delivery_date || !isValidDateDDMMYYYY(formFields.delivery_date)) {
+        setFormErrors(prev => ({
+          ...prev,
+          delivery_date: 'Yetkazish kuni noto\'g\'ri. Format: kun/oy/yil (Mas: 13/09/2026)'
+        }));
         deliveryDateRef.current?.focus();
         return;
       }
@@ -313,7 +325,7 @@ export default function OrderList() {
       customer_phone: '+998 ',
       customer_phone2: '',
       customer_address: '',
-      delivery_date: new Date().toISOString().split('T')[0],
+      delivery_date: getTodayDisplayDate(),
       paid_amount: 0,
       note: ''
     });
@@ -326,7 +338,7 @@ export default function OrderList() {
       height: 0,
       quantity: 1,
       price: 0,
-      discount_amount: 0,
+      discount_amount: '',
       note: ''
     }]);
     setFormErrors({});
@@ -343,7 +355,7 @@ export default function OrderList() {
       height: 0,
       quantity: 1,
       price: 0,
-      discount_amount: 0,
+      discount_amount: '',
       note: ''
     };
     if (isEdit) {
@@ -457,12 +469,10 @@ export default function OrderList() {
 
   const calculateTotal = (itemsList) => {
     return itemsList.reduce((sum, item) => sum + calculateItemSum(item), 0);
-  };
-
-  const validateForm = (fields, itemsList) => {
+  };  const validateForm = (fields, itemsList) => {
     const errors = {};
-    if (!fields.first_name || !fields.first_name.trim()) errors.first_name = 'Ism kiritilishi shart';
-    if (!fields.last_name || !fields.last_name.trim()) errors.last_name = 'Familiya kiritilishi shart';
+    if (!fields.first_name || !fields.first_name.trim()) errors.first_name = 'Ism kiritilishi shart (faqat harflar, bo\'sh joy kiritilmaydi)';
+    if (!fields.last_name || !fields.last_name.trim()) errors.last_name = 'Familiya kiritilishi shart (faqat harflar, bo\'sh joy kiritilmaydi)';
     
     const p1Digits = getLocalDigits(fields.customer_phone);
     if (!p1Digits || p1Digits.length !== 9) {
@@ -474,7 +484,9 @@ export default function OrderList() {
       errors.customer_phone2 = '2-Telefon raqam to\'liq bo\'lishi kerak (9 ta raqam) yoki bo\'sh qoldiring';
     }
 
-    if (!fields.delivery_date) errors.delivery_date = 'Yetkazish kuni kiritilishi shart';
+    if (!fields.delivery_date || !isValidDateDDMMYYYY(fields.delivery_date)) {
+      errors.delivery_date = 'Yetkazish kuni noto\'g\'ri. Format: kun/oy/yil (Mas: 13/09/2026)';
+    }
     
     if (itemsList.length === 0) {
       errors.items = 'Kamida bitta mahsulot kiritilishi shart';
@@ -500,14 +512,14 @@ export default function OrderList() {
 
     try {
       setLoading(true);
-      const customerName = cleanName(`${capitalizeFirstLetter(formFields.first_name)} ${capitalizeFirstLetter(formFields.last_name)}`);
+      const customerName = cleanName(`${formatPersonName(formFields.first_name)} ${formatPersonName(formFields.last_name)}`);
       
       const orderData = {
         customer_name: customerName,
         customer_phone: toBackendPhone(formFields.customer_phone),
         customer_phone2: toBackendPhone(formFields.customer_phone2),
         customer_address: formFields.customer_address || '',
-        delivery_date: formFields.delivery_date,
+        delivery_date: toBackendDate(formFields.delivery_date),
         paid_amount: parseFloat(formFields.paid_amount) || 0,
         note: formFields.note || '',
         items: formItems.map(item => ({
@@ -546,7 +558,7 @@ export default function OrderList() {
         customer_phone: fullOrder.customer_phone || '',
         customer_phone2: fullOrder.customer_phone2 || '',
         customer_address: fullOrder.customer_address || '',
-        delivery_date: fullOrder.delivery_date || '',
+        delivery_date: toDisplayDate(fullOrder.delivery_date),
         paid_amount: fullOrder.paid_amount || 0,
         note: fullOrder.note || '',
         status: fullOrder.status
@@ -555,6 +567,7 @@ export default function OrderList() {
       const dbItems = fullOrder.order_items || fullOrder.items || [];
       const editItems = dbItems.map(item => ({
         ...item,
+        discount_amount: item.discount_percent || item.discount_amount ? (item.discount_amount || item.discount_percent) : '',
         razmer: item.width && item.height ? `${item.width}x${item.height}` : ''
       }));
 
@@ -563,7 +576,6 @@ export default function OrderList() {
         order_number: fullOrder.order_number,
         items: editItems
       });
-
       setFormErrors({});
       setEditDialogOpen(true);
     } catch (err) {
@@ -580,14 +592,14 @@ export default function OrderList() {
 
     try {
       setLoading(true);
-      const customerName = cleanName(`${capitalizeFirstLetter(formFields.first_name)} ${capitalizeFirstLetter(formFields.last_name)}`);
+      const customerName = cleanName(`${formatPersonName(formFields.first_name)} ${formatPersonName(formFields.last_name)}`);
       
       const updateData = {
         customer_name: customerName,
         customer_phone: toBackendPhone(formFields.customer_phone),
         customer_phone2: toBackendPhone(formFields.customer_phone2),
         customer_address: formFields.customer_address || '',
-        delivery_date: formFields.delivery_date,
+        delivery_date: toBackendDate(formFields.delivery_date),
         paid_amount: parseFloat(formFields.paid_amount) || 0,
         note: formFields.note || '',
         status: formFields.status,
@@ -948,10 +960,12 @@ export default function OrderList() {
                     fullWidth
                     label="Ism"
                     size="small"
+                    placeholder="Mas: Ali"
                     value={formFields.first_name}
                     onChange={(e) => {
-                      setFormFields({ ...formFields, first_name: e.target.value });
-                      if (formErrors.first_name) setFormErrors({ ...formErrors, first_name: '' });
+                      const formatted = formatPersonName(e.target.value);
+                      setFormFields(prev => ({ ...prev, first_name: formatted }));
+                      if (formErrors.first_name) setFormErrors(prev => ({ ...prev, first_name: '' }));
                     }}
                     onKeyDown={handleFirstNameKeyDown}
                     error={!!formErrors.first_name}
@@ -965,10 +979,12 @@ export default function OrderList() {
                     fullWidth
                     label="Familiya"
                     size="small"
+                    placeholder="Mas: Valiyev"
                     value={formFields.last_name}
                     onChange={(e) => {
-                      setFormFields({ ...formFields, last_name: e.target.value });
-                      if (formErrors.last_name) setFormErrors({ ...formErrors, last_name: '' });
+                      const formatted = formatPersonName(e.target.value);
+                      setFormFields(prev => ({ ...prev, last_name: formatted }));
+                      if (formErrors.last_name) setFormErrors(prev => ({ ...prev, last_name: '' }));
                     }}
                     onKeyDown={handleLastNameKeyDown}
                     error={!!formErrors.last_name}
@@ -1009,22 +1025,19 @@ export default function OrderList() {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
+                  <UzDateField
                     inputRef={deliveryDateRef}
                     required
                     fullWidth
-                    type="date"
                     label="Yetkazish kuni"
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
                     value={formFields.delivery_date}
-                    onChange={(e) => {
-                      setFormFields({ ...formFields, delivery_date: e.target.value });
-                      if (formErrors.delivery_date) setFormErrors({ ...formErrors, delivery_date: '' });
+                    onChange={(formatted) => {
+                      setFormFields(prev => ({ ...prev, delivery_date: formatted }));
+                      if (formErrors.delivery_date) setFormErrors(prev => ({ ...prev, delivery_date: '' }));
                     }}
                     onKeyDown={handleDeliveryDateKeyDown}
                     error={!!formErrors.delivery_date}
-                    helperText={formErrors.delivery_date}
+                    helperText={formErrors.delivery_date || "Format: kun/oy/yil (Mas: 13/09/2026)"}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -1128,8 +1141,9 @@ export default function OrderList() {
                         size="small"
                         label="Skidka (so'm)"
                         type="number"
-                        value={item.discount_amount}
-                        onChange={(e) => handleFormItemChange(index, 'discount_amount', parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        value={item.discount_amount !== undefined && item.discount_amount !== null ? item.discount_amount : ''}
+                        onChange={(e) => handleFormItemChange(index, 'discount_amount', e.target.value)}
                       />
                     </Grid>
 
@@ -1242,8 +1256,14 @@ export default function OrderList() {
                       fullWidth
                       label="Ism"
                       size="small"
+                      placeholder="Mas: Ali"
                       value={formFields.first_name}
-                      onChange={(e) => setFormFields({ ...formFields, first_name: e.target.value })}
+                      onChange={(e) => {
+                        const formatted = formatPersonName(e.target.value);
+                        setFormFields(prev => ({ ...prev, first_name: formatted }));
+                        if (formErrors.first_name) setFormErrors(prev => ({ ...prev, first_name: '' }));
+                      }}
+                      onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }}
                       error={!!formErrors.first_name}
                       helperText={formErrors.first_name}
                     />
@@ -1254,8 +1274,14 @@ export default function OrderList() {
                       fullWidth
                       label="Familiya"
                       size="small"
+                      placeholder="Mas: Valiyev"
                       value={formFields.last_name}
-                      onChange={(e) => setFormFields({ ...formFields, last_name: e.target.value })}
+                      onChange={(e) => {
+                        const formatted = formatPersonName(e.target.value);
+                        setFormFields(prev => ({ ...prev, last_name: formatted }));
+                        if (formErrors.last_name) setFormErrors(prev => ({ ...prev, last_name: '' }));
+                      }}
+                      onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }}
                       error={!!formErrors.last_name}
                       helperText={formErrors.last_name}
                     />
@@ -1290,17 +1316,17 @@ export default function OrderList() {
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
+                    <UzDateField
                       required
                       fullWidth
-                      type="date"
                       label="Yetkazish kuni"
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
                       value={formFields.delivery_date}
-                      onChange={(e) => setFormFields({ ...formFields, delivery_date: e.target.value })}
+                      onChange={(formatted) => {
+                        setFormFields(prev => ({ ...prev, delivery_date: formatted }));
+                        if (formErrors.delivery_date) setFormErrors(prev => ({ ...prev, delivery_date: '' }));
+                      }}
                       error={!!formErrors.delivery_date}
-                      helperText={formErrors.delivery_date}
+                      helperText={formErrors.delivery_date || "Format: kun/oy/yil (Mas: 13/09/2026)"}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>

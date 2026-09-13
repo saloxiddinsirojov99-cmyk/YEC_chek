@@ -36,6 +36,19 @@ export function getLocalDigits(phone) {
 }
 
 /**
+ * Sanitize and format name/surname:
+ * - Disallows spaces completely
+ * - Disallows numbers and special symbols (allows letters and apostrophes)
+ * - First letter uppercase, rest lowercase
+ */
+export function formatPersonName(str) {
+  if (!str) return '';
+  const clean = String(str).replace(/[^\p{L}'ʻ’`]/gu, '');
+  if (!clean) return '';
+  return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+}
+
+/**
  * Clean phone number for backend storage: "+998901234567" or empty string ""
  */
 export function toBackendPhone(phone) {

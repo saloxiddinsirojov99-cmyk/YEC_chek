@@ -114,7 +114,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
       branch_address: order.branch?.address || null,
       branch_phone: order.branch?.phone || null,
       seller_name: order.seller?.name || null,
-      order_items: order.items
+      items: order.items.map(i => ({ ...i, discount_amount: i.discount_percent })),
+      order_items: order.items.map(i => ({ ...i, discount_amount: i.discount_percent }))
     };
 
     res.json({
@@ -151,7 +152,12 @@ router.post('/', authenticateToken, async (req, res) => {
       if (!item.product_name || item.quantity <= 0 || item.price < 0) {
         return res.status(400).json({ success: false, message: 'Mahsulot ma\'lumotlari to\'g\'ri kiritilmagan.' });
       }
-      total_amount += item.quantity * item.price;
+      const itemQty = item.width && item.height ? (parseFloat(item.width) * parseFloat(item.height)) : (parseFloat(item.quantity) || 1);
+      const itemPrice = parseFloat(item.price) || 0;
+      const itemDisc = (item.discount_amount !== undefined && item.discount_amount !== null && item.discount_amount !== '')
+        ? parseFloat(item.discount_amount)
+        : (parseFloat(item.discount_percent) || 0);
+      total_amount += Math.max(0, (itemQty * itemPrice) - itemDisc);
     }
 
     // Auto-generate order number
@@ -188,6 +194,9 @@ router.post('/', authenticateToken, async (req, res) => {
           items: {
             create: items.map(item => {
               const itemQty = item.width && item.height ? (parseFloat(item.width) * parseFloat(item.height)) : (parseFloat(item.quantity) || 1);
+              const itemDisc = (item.discount_amount !== undefined && item.discount_amount !== null && item.discount_amount !== '')
+                ? parseFloat(item.discount_amount)
+                : (parseFloat(item.discount_percent) || 0);
               return {
                 product_id: item.product_id ? parseInt(item.product_id) : null,
                 product_name: item.product_name,
@@ -196,7 +205,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 height: item.height ? parseFloat(item.height) : 0,
                 quantity: itemQty,
                 price: parseFloat(item.price),
-                discount_percent: item.discount_percent ? parseFloat(item.discount_percent) : 0,
+                discount_percent: itemDisc,
                 note: item.note ? item.note.trim() : ''
               };
             })
@@ -211,12 +220,13 @@ router.post('/', authenticateToken, async (req, res) => {
       return created;
     });
 
+    const mappedItems = result.items.map(i => ({ ...i, discount_amount: i.discount_percent }));
     const responseData = {
       ...result,
       branch_name: result.branch?.name || null,
       seller_name: result.seller?.name || null,
-      items: result.items,
-      order_items: result.items
+      items: mappedItems,
+      order_items: mappedItems
     };
 
     res.status(201).json({
@@ -265,7 +275,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
         let total_amount = 0;
         for (const item of items) {
           const qty = item.width && item.height ? (parseFloat(item.width) * parseFloat(item.height)) : (parseFloat(item.quantity) || 1);
-          total_amount += qty * parseFloat(item.price || 0);
+          const itemPrice = parseFloat(item.price || 0);
+          const itemDisc = (item.discount_amount !== undefined && item.discount_amount !== null && item.discount_amount !== '')
+            ? parseFloat(item.discount_amount)
+            : (parseFloat(item.discount_percent) || 0);
+          total_amount += Math.max(0, (qty * itemPrice) - itemDisc);
         }
         updateData.total_amount = total_amount;
 
@@ -278,6 +292,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
         updateData.items = {
           create: items.map(item => {
             const itemQty = item.width && item.height ? (parseFloat(item.width) * parseFloat(item.height)) : (parseFloat(item.quantity) || 1);
+            const itemDisc = (item.discount_amount !== undefined && item.discount_amount !== null && item.discount_amount !== '')
+              ? parseFloat(item.discount_amount)
+              : (parseFloat(item.discount_percent) || 0);
             return {
               product_id: item.product_id ? parseInt(item.product_id) : null,
               product_name: item.product_name,
@@ -286,7 +303,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
               height: item.height ? parseFloat(item.height) : 0,
               quantity: itemQty,
               price: parseFloat(item.price || 0),
-              discount_percent: item.discount_percent ? parseFloat(item.discount_percent) : 0,
+              discount_percent: itemDisc,
               note: item.note ? item.note.trim() : ''
             };
           })
@@ -304,12 +321,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
       });
     });
 
+    const mappedUpdatedItems = updated.items.map(i => ({ ...i, discount_amount: i.discount_percent }));
     const responseData = {
       ...updated,
       branch_name: updated.branch?.name || null,
       seller_name: updated.seller?.name || null,
-      items: updated.items,
-      order_items: updated.items
+      items: mappedUpdatedItems,
+      order_items: mappedUpdatedItems
     };
 
     res.json({

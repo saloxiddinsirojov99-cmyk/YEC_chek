@@ -42,24 +42,23 @@ export default function Receipt({ order, onClose }) {
 
   const branch = branches.find(b => b.id === order.branch_id);
   const items = order.order_items || order.items || [];
-  const totalAmount = items.reduce((sum, item) => sum + ((parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0)), 0) || order.total_amount;
-  const balance = totalAmount - order.paid_amount;
 
-  // Check if any item has a discount
-  const hasDiscount = items.some(item => (parseFloat(item.discount_percent) || 0) > 0);
-  
-  // Calculate total discount amount
-  const totalDiscountAmount = items.reduce((sum, item) => {
-    const qty = parseFloat(item.quantity) || 0;
-    const price = parseFloat(item.price) || 0;
-    const discountPercent = parseFloat(item.discount_percent) || 0;
-    return sum + (qty * price * discountPercent / 100);
-  }, 0);
+  const getItemDiscount = (item) => {
+    if (item.discount_amount !== undefined && item.discount_amount !== null && item.discount_amount !== '') {
+      return parseFloat(item.discount_amount) || 0;
+    }
+    if (item.discount_percent !== undefined && item.discount_percent !== null && item.discount_percent !== '') {
+      return parseFloat(item.discount_percent) || 0;
+    }
+    return 0;
+  };
 
-  // Calculate average discount percent for display
-  const avgDiscountPercent = totalAmount > 0 && totalDiscountAmount > 0 
-    ? Math.round((totalDiscountAmount / totalAmount) * 100) 
-    : 0;
+  const totalGross = items.reduce((sum, item) => sum + ((parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0)), 0);
+  const totalDiscount = items.reduce((sum, item) => sum + getItemDiscount(item), 0);
+  const calculatedNet = Math.max(0, totalGross - totalDiscount);
+  const finalTotal = totalDiscount > 0 ? calculatedNet : (parseFloat(order.total_amount) || totalGross);
+  const paidAmount = parseFloat(order.paid_amount) || 0;
+  const balance = Math.max(0, finalTotal - paidAmount);
 
   const handlePrint = () => {
     window.print();
@@ -174,58 +173,66 @@ export default function Receipt({ order, onClose }) {
             <thead>
               <tr>
                 <th style={{ width: '5%' }}>№</th>
-                <th style={{ width: '40%' }}>Mahsulot nomi / Kodi / O'lcham</th>
+                <th style={{ width: '35%' }}>Mahsulot nomi / Kodi / O'lcham</th>
                 <th style={{ width: '15%' }}>Kvadrat (m²)</th>
-                <th style={{ width: '20%' }}>Narxi</th>
-                <th style={{ width: '20%' }}>Summa</th>
+                <th style={{ width: '15%' }}>Narxi</th>
+                <th style={{ width: '15%' }}>Summa</th>
+                <th style={{ width: '15%' }}>Skidka</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item, index) => (
-                <tr key={index}>
-                  <td>{index + 1}</td>
-                  <td>
-                    <div className="item-name">{item.product_name}</div>
-                    {item.product_code && <div className="item-code">Kod: {item.product_code}</div>}
-                    {item.width > 0 && item.height > 0 && (
-                      <div className="item-size">O'lcham: {item.width}×{item.height} m</div>
-                    )}
-                    {item.note && <div className="item-note">{item.note}</div>}
-                  </td>
-                  <td>{item.quantity}</td>
-                  <td>{item.price.toLocaleString()} so'm</td>
-                  <td>{((parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0)).toLocaleString()} so'm</td>
-                </tr>
-              ))}
+              {items.map((item, index) => {
+                const qty = parseFloat(item.quantity) || 0;
+                const price = parseFloat(item.price) || 0;
+                const itemSum = qty * price;
+                const itemDisc = getItemDiscount(item);
+                return (
+                  <tr key={index}>
+                    <td>{index + 1}</td>
+                    <td>
+                      <div className="item-name">{item.product_name}</div>
+                      {item.product_code && <div className="item-code">Kod: {item.product_code}</div>}
+                      {item.width > 0 && item.height > 0 && (
+                        <div className="item-size">O'lcham: {item.width}×{item.height} m</div>
+                      )}
+                      {item.note && <div className="item-note">{item.note}</div>}
+                    </td>
+                    <td>{item.quantity}</td>
+                    <td>{price.toLocaleString()} so'm</td>
+                    <td>{itemSum.toLocaleString()} so'm</td>
+                    <td>{itemDisc.toLocaleString()} so'm</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
           {/* Totals */}
           <div className="totals-section">
-            {hasDiscount && totalDiscountAmount > 0 ? (
+            {totalDiscount > 0 ? (
               <>
                 <div className="total-row original">
                   <span>ASL SUMMA:</span>
-                  <span className="amount">{totalAmount.toLocaleString()} so'm</span>
+                  <span className="amount">{totalGross.toLocaleString()} so'm</span>
                 </div>
                 <div className="total-row discount-line">
-                  <span>Skidka: {avgDiscountPercent}%</span>
-                  <span className="amount discount-amount">-{totalDiscountAmount.toLocaleString()} so'm</span>
+                  <span>SKIDKA:</span>
+                  <span className="amount discount-amount">-{totalDiscount.toLocaleString()} so'm</span>
                 </div>
                 <div className="total-row final">
-                  <span>YAKUNIY SUMMA:</span>
-                  <span className="amount">{Math.round(totalAmount - totalDiscountAmount).toLocaleString()} so'm</span>
+                  <span>JAMI SUMMA:</span>
+                  <span className="amount">{finalTotal.toLocaleString()} so'm</span>
                 </div>
               </>
             ) : (
               <div className="total-row">
                 <span>JAMI SUMMA:</span>
-                <span className="amount">{totalAmount.toLocaleString()} so'm</span>
+                <span className="amount">{finalTotal.toLocaleString()} so'm</span>
               </div>
             )}
             <div className="total-row">
               <span>TO'LOV:</span>
-              <span className="amount">{order.paid_amount.toLocaleString()} so'm</span>
+              <span className="amount">{paidAmount.toLocaleString()} so'm</span>
             </div>
             <div className="total-row balance">
               <span>QOLDIQ:</span>
@@ -252,23 +259,24 @@ export default function Receipt({ order, onClose }) {
             </div>
           </div>
 
-          {/* Bottom section: QR code (left) + Signature (right) + Date */}
+          {/* Bottom section: QR code + Dual Signatures */}
           <div className="receipt-bottom-section">
-            <div className="receipt-bottom-left">
+            <div className="receipt-qr-row">
               <div className="qr-code-container">
                 <canvas ref={qrCanvasRef}></canvas>
               </div>
-              <div className="print-date">
-                Sana: {printDate}
-              </div>
             </div>
-            <div className="receipt-bottom-right">
-              <div className="signature-section">
-                <div className="signature-line">_____________________</div>
-                <p className="signature-label">Mas'ul shaxs imzosi</p>
+
+            <div className="receipt-signatures-container">
+              <div className="signature-col customer-sign">
+                <div className="signature-line">──────────────────</div>
+                <p className="signature-label">Mijoz imzosi</p>
+                <p className="signature-date">Sana: {printDate}</p>
               </div>
-              <div className="sana-text">
-                Sana: {printDate}
+              <div className="signature-col seller-sign">
+                <div className="signature-line">──────────────────</div>
+                <p className="signature-label">Sotuvchi imzosi</p>
+                <p className="signature-date">Sana: {printDate}</p>
               </div>
             </div>
           </div>
@@ -276,7 +284,7 @@ export default function Receipt({ order, onClose }) {
           {/* Footer */}
           <div className="receipt-footer">
             <p>YEC GILAM kompaniyasiga xush kelibsiz!</p>
-            <p>Bugun emas, keltirayotgan kunlarda ham biz bilan bo'ling</p>
+            <p>Bizni tanlaganingiz uchun raxmat!</p>
           </div>
         </div>
       </div>
