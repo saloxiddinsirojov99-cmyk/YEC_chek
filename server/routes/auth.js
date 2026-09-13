@@ -12,13 +12,14 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'So\'rov tanasi (request body) bo\'sh bo\'lishi mumkin emas.' });
     }
 
-    const { email, password } = req.body;
+    const identifier = (req.body.emailOrName || req.body.email || req.body.name || req.body.username || '').trim();
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
 
-    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
-      return res.status(400).json({ success: false, message: 'Email va parol matn ko\'rinishida kiritilishi shart.' });
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, message: 'Email/ism va parol kiritilishi shart.' });
     }
 
-    console.log('[LOGIN] Attempt for email:', email);
+    console.log('[LOGIN] Attempt for identifier:', identifier);
 
     // Check environment configuration
     if (!process.env.DATABASE_URL) {
@@ -29,8 +30,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    console.log('[LOGIN] DATABASE_URL defined, JWT_SECRET defined:', !!JWT_SECRET);
-
     if (!JWT_SECRET) {
       console.error('[LOGIN] DevOps Error: JWT_SECRET is not defined or is empty.');
       return res.status(500).json({
@@ -39,38 +38,57 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Find user using Prisma
-    const user = await prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
+    // 1. Search candidates by exact email OR exact name (case-insensitive)
+    let candidates = await prisma.user.findMany({
+      where: {
+        OR: [
+          { email: { equals: identifier, mode: 'insensitive' } },
+          { name: { equals: identifier, mode: 'insensitive' } }
+        ]
+      },
       include: { branch: true }
     });
 
-    console.log('[LOGIN] User found in DB:', !!user);
-    if (!user) {
-      // Check if any users exist at all
-      const userCount = await prisma.user.count();
-      console.log('[LOGIN] Total users in DB:', userCount);
-      return res.status(401).json({ success: false, message: 'Email yoki parol noto\'g\'ri.', debug: { userExists: false, totalUsers: userCount } });
+    // 2. If no exact match found, also check if name starts with identifier (e.g. first name)
+    if (candidates.length === 0) {
+      candidates = await prisma.user.findMany({
+        where: {
+          name: { startsWith: identifier, mode: 'insensitive' }
+        },
+        include: { branch: true }
+      });
     }
 
-    console.log('[LOGIN] User role:', user.role, '| branch_id:', user.branch_id);
-
-    // Verify password
-    const isValid = verifyPassword(password, user.password_hash);
-    console.log('[LOGIN] Password verification:', isValid ? 'SUCCESS' : 'FAILED');
-    if (!isValid) {
-      return res.status(401).json({ success: false, message: 'Email yoki parol noto\'g\'ri.' });
+    console.log('[LOGIN] Candidates found in DB:', candidates.length);
+    if (candidates.length === 0) {
+      return res.status(401).json({ success: false, message: 'Email/ism yoki parol noto\'g\'ri.' });
     }
+
+    // 3. Verify password against matching candidate(s) to guarantee accurate user resolution
+    let authenticatedUser = null;
+    for (const candidate of candidates) {
+      if (verifyPassword(password, candidate.password_hash)) {
+        authenticatedUser = candidate;
+        break;
+      }
+    }
+
+    console.log('[LOGIN] Password verification:', authenticatedUser ? 'SUCCESS' : 'FAILED');
+    if (!authenticatedUser) {
+      return res.status(401).json({ success: false, message: 'Email/ism yoki parol noto\'g\'ri.' });
+    }
+
+    console.log('[LOGIN] User authenticated:', authenticatedUser.id, authenticatedUser.role, '| branch_id:', authenticatedUser.branch_id);
 
     // Sign token
     const token = jwt.sign(
       {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        branch_id: user.branch_id,
-        branch_name: user.branch?.name || null
+        id: authenticatedUser.id,
+        name: authenticatedUser.name,
+        email: authenticatedUser.email,
+        role: authenticatedUser.role,
+        branch_id: authenticatedUser.branch_id,
+        branch_name: authenticatedUser.branch?.name || null
       },
       JWT_SECRET,
       { expiresIn: '30d' }

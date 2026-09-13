@@ -58,12 +58,12 @@ export async function logoutUser() {
   }
 }
 
-export async function loginUser(email, password) {
+export async function loginUser(emailOrName, password) {
   try {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ emailOrName, email: emailOrName, password })
     });
     
     if (!response.ok) {

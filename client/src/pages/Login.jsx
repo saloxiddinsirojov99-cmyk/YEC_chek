@@ -17,6 +17,7 @@ import {
   Visibility,
   VisibilityOff,
   Email,
+  Person,
   Lock,
   Login as LoginIcon
 } from '@mui/icons-material';
@@ -34,12 +35,8 @@ export default function Login() {
   const [emailTouched, setEmailTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
 
-  const isEmailValid = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
-  const emailError = emailTouched && !email;
-  const emailInvalid = emailTouched && email && !isEmailValid(email);
+  const identifier = email.trim();
+  const emailError = emailTouched && !identifier;
   const passwordError = passwordTouched && !password;
 
   const handleSubmit = async (e) => {
@@ -47,8 +44,8 @@ export default function Login() {
     setEmailTouched(true);
     setPasswordTouched(true);
 
-    if (!email || !password || !isEmailValid(email)) {
-      setError('Iltimos, barcha maydonlarni to\'g\'ri to\'ldiring.');
+    if (!identifier || !password) {
+      setError('Iltimos, barcha maydonlarni to\'ldiring.');
       return;
     }
 
@@ -198,26 +195,25 @@ export default function Login() {
               required
               fullWidth
               id="email"
-              label="Email Manzil"
+              label="Email yoki ism"
+              placeholder="Email yoki ism"
               name="email"
-              autoComplete="email"
+              autoComplete="username"
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setEmailTouched(true)}
-              error={emailError || emailInvalid}
+              error={emailError}
               helperText={
                 emailError
-                  ? 'Email kiritilishi shart'
-                  : emailInvalid
-                  ? 'Noto\'g\'ri email formati'
+                  ? 'Email yoki ism kiritilishi shart'
                   : ''
               }
               disabled={loading}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Email sx={{ color: 'rgba(255, 255, 255, 0.4)' }} />
+                    <Person sx={{ color: 'rgba(255, 255, 255, 0.4)' }} />
                   </InputAdornment>
                 ),
               }}

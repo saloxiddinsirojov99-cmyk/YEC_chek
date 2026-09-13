@@ -32,10 +32,10 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (emailOrName, password) => {
     try {
       setError(null);
-      const response = await loginUser(email, password);
+      const response = await loginUser(emailOrName, password);
       
       // Support both { data: { token, user } } and { token, user }
       const token = response?.data?.token || response?.token;
