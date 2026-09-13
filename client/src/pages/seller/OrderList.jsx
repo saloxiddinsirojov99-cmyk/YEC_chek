@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { getOrders, getOrderById, updateOrder, deleteOrder, getProducts, createOrder } from '../../services/api';
 import Receipt from '../../components/Receipt';
 import ProductSearchModal from '../../components/ProductSearchModal';
+import UzPhoneField, { toBackendPhone, getLocalDigits } from '../../components/UzPhoneField';
 import {
   Box,
   Typography,
@@ -143,6 +144,110 @@ export default function OrderList() {
   const [formItems, setFormItems] = useState([]);
   const [formErrors, setFormErrors] = useState({});
 
+  // Field references for sequential keyboard navigation
+  const firstNameRef = useRef(null);
+  const lastNameRef = useRef(null);
+  const phone1Ref = useRef(null);
+  const phone2Ref = useRef(null);
+  const deliveryDateRef = useRef(null);
+  const addressRef = useRef(null);
+
+  // Auto-focus first name input whenever Create Order Dialog opens
+  useEffect(() => {
+    if (createDialogOpen) {
+      const timer = setTimeout(() => {
+        if (firstNameRef.current) {
+          firstNameRef.current.focus();
+          firstNameRef.current.select?.();
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [createDialogOpen]);
+
+  // Enter key sequential navigation handlers
+  const handleFirstNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!formFields.first_name || !formFields.first_name.trim()) {
+        setFormErrors(prev => ({ ...prev, first_name: 'Ism kiritilishi shart' }));
+        firstNameRef.current?.focus();
+        return;
+      }
+      setFormErrors(prev => ({ ...prev, first_name: '' }));
+      lastNameRef.current?.focus();
+      lastNameRef.current?.select?.();
+    }
+  };
+
+  const handleLastNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!formFields.last_name || !formFields.last_name.trim()) {
+        setFormErrors(prev => ({ ...prev, last_name: 'Familiya kiritilishi shart' }));
+        lastNameRef.current?.focus();
+        return;
+      }
+      setFormErrors(prev => ({ ...prev, last_name: '' }));
+      phone1Ref.current?.focus();
+    }
+  };
+
+  const handlePhone1KeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const digits = getLocalDigits(formFields.customer_phone);
+      if (digits.length !== 9) {
+        setFormErrors(prev => ({
+          ...prev,
+          customer_phone: 'Telefon raqam to\'liq kiritilishi shart (9 ta raqam)'
+        }));
+        phone1Ref.current?.focus();
+        return;
+      }
+      setFormErrors(prev => ({ ...prev, customer_phone: '' }));
+      phone2Ref.current?.focus();
+    }
+  };
+
+  const handlePhone2KeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const digits2 = getLocalDigits(formFields.customer_phone2);
+      if (digits2.length > 0 && digits2.length !== 9) {
+        setFormErrors(prev => ({
+          ...prev,
+          customer_phone2: '2-Telefon raqam to\'liq bo\'lishi kerak (9 ta raqam) yoki bo\'sh qoldiring'
+        }));
+        phone2Ref.current?.focus();
+        return;
+      }
+      setFormErrors(prev => ({ ...prev, customer_phone2: '' }));
+      deliveryDateRef.current?.focus();
+    }
+  };
+
+  const handleDeliveryDateKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!formFields.delivery_date) {
+        setFormErrors(prev => ({ ...prev, delivery_date: 'Yetkazish kuni kiritilishi shart' }));
+        deliveryDateRef.current?.focus();
+        return;
+      }
+      setFormErrors(prev => ({ ...prev, delivery_date: '' }));
+      addressRef.current?.focus();
+      addressRef.current?.select?.();
+    }
+  };
+
+  const handleAddressKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      openProductSearch(0, false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     if (location.state?.openCreate) {
@@ -205,7 +310,7 @@ export default function OrderList() {
     setFormFields({
       first_name: '',
       last_name: '',
-      customer_phone: '',
+      customer_phone: '+998 ',
       customer_phone2: '',
       customer_address: '',
       delivery_date: new Date().toISOString().split('T')[0],
@@ -356,11 +461,19 @@ export default function OrderList() {
 
   const validateForm = (fields, itemsList) => {
     const errors = {};
-    if (!fields.first_name) errors.first_name = 'Ism kiritilishi shart';
-    if (!fields.last_name) errors.last_name = 'Familiya kiritilishi shart';
-    if (!fields.customer_phone || !isValidPhone(fields.customer_phone)) {
-      errors.customer_phone = 'Telefon raqam noto\'g\'ri';
+    if (!fields.first_name || !fields.first_name.trim()) errors.first_name = 'Ism kiritilishi shart';
+    if (!fields.last_name || !fields.last_name.trim()) errors.last_name = 'Familiya kiritilishi shart';
+    
+    const p1Digits = getLocalDigits(fields.customer_phone);
+    if (!p1Digits || p1Digits.length !== 9) {
+      errors.customer_phone = 'Telefon raqam to\'liq kiritilishi shart (9 ta raqam)';
     }
+
+    const p2Digits = getLocalDigits(fields.customer_phone2);
+    if (p2Digits.length > 0 && p2Digits.length !== 9) {
+      errors.customer_phone2 = '2-Telefon raqam to\'liq bo\'lishi kerak (9 ta raqam) yoki bo\'sh qoldiring';
+    }
+
     if (!fields.delivery_date) errors.delivery_date = 'Yetkazish kuni kiritilishi shart';
     
     if (itemsList.length === 0) {
@@ -391,8 +504,8 @@ export default function OrderList() {
       
       const orderData = {
         customer_name: customerName,
-        customer_phone: formFields.customer_phone,
-        customer_phone2: formFields.customer_phone2 || '',
+        customer_phone: toBackendPhone(formFields.customer_phone),
+        customer_phone2: toBackendPhone(formFields.customer_phone2),
         customer_address: formFields.customer_address || '',
         delivery_date: formFields.delivery_date,
         paid_amount: parseFloat(formFields.paid_amount) || 0,
@@ -471,8 +584,8 @@ export default function OrderList() {
       
       const updateData = {
         customer_name: customerName,
-        customer_phone: formFields.customer_phone,
-        customer_phone2: formFields.customer_phone2 || '',
+        customer_phone: toBackendPhone(formFields.customer_phone),
+        customer_phone2: toBackendPhone(formFields.customer_phone2),
         customer_address: formFields.customer_address || '',
         delivery_date: formFields.delivery_date,
         paid_amount: parseFloat(formFields.paid_amount) || 0,
@@ -825,58 +938,79 @@ export default function OrderList() {
             </IconButton>
           </DialogTitle>
           <DialogContent dividers>
-            <Box component="form" noValidate>
+            <Box component="form" noValidate onSubmit={(e) => e.preventDefault()}>
               <Typography variant="subtitle2" color="primary" sx={{ mb: 2, fontWeight: 600 }}>Mijoz Ma'lumotlari</Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField
+                    inputRef={firstNameRef}
                     required
                     fullWidth
                     label="Ism"
                     size="small"
                     value={formFields.first_name}
-                    onChange={(e) => setFormFields({ ...formFields, first_name: e.target.value })}
+                    onChange={(e) => {
+                      setFormFields({ ...formFields, first_name: e.target.value });
+                      if (formErrors.first_name) setFormErrors({ ...formErrors, first_name: '' });
+                    }}
+                    onKeyDown={handleFirstNameKeyDown}
                     error={!!formErrors.first_name}
                     helperText={formErrors.first_name}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
+                    inputRef={lastNameRef}
                     required
                     fullWidth
                     label="Familiya"
                     size="small"
                     value={formFields.last_name}
-                    onChange={(e) => setFormFields({ ...formFields, last_name: e.target.value })}
+                    onChange={(e) => {
+                      setFormFields({ ...formFields, last_name: e.target.value });
+                      if (formErrors.last_name) setFormErrors({ ...formErrors, last_name: '' });
+                    }}
+                    onKeyDown={handleLastNameKeyDown}
                     error={!!formErrors.last_name}
                     helperText={formErrors.last_name}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
+                  <UzPhoneField
+                    inputRef={phone1Ref}
                     required
                     fullWidth
                     label="1-Telefon raqam"
                     size="small"
-                    placeholder="+998 XX XXX XX XX"
                     value={formFields.customer_phone}
-                    onChange={(e) => setFormFields({ ...formFields, customer_phone: e.target.value })}
+                    onChange={(formatted) => {
+                      setFormFields(prev => ({ ...prev, customer_phone: formatted }));
+                      if (formErrors.customer_phone) setFormErrors(prev => ({ ...prev, customer_phone: '' }));
+                    }}
+                    onKeyDown={handlePhone1KeyDown}
                     error={!!formErrors.customer_phone}
                     helperText={formErrors.customer_phone || "Mas: +998 90 123 45 67"}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
+                  <UzPhoneField
+                    inputRef={phone2Ref}
                     fullWidth
-                    label="2-Telefon raqam"
+                    label="2-Telefon raqam (Ixtiyoriy)"
                     size="small"
-                    placeholder="+998 XX XXX XX XX"
                     value={formFields.customer_phone2}
-                    onChange={(e) => setFormFields({ ...formFields, customer_phone2: e.target.value })}
+                    onChange={(formatted) => {
+                      setFormFields(prev => ({ ...prev, customer_phone2: formatted }));
+                      if (formErrors.customer_phone2) setFormErrors(prev => ({ ...prev, customer_phone2: '' }));
+                    }}
+                    onKeyDown={handlePhone2KeyDown}
+                    error={!!formErrors.customer_phone2}
+                    helperText={formErrors.customer_phone2}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
+                    inputRef={deliveryDateRef}
                     required
                     fullWidth
                     type="date"
@@ -884,19 +1018,25 @@ export default function OrderList() {
                     size="small"
                     InputLabelProps={{ shrink: true }}
                     value={formFields.delivery_date}
-                    onChange={(e) => setFormFields({ ...formFields, delivery_date: e.target.value })}
+                    onChange={(e) => {
+                      setFormFields({ ...formFields, delivery_date: e.target.value });
+                      if (formErrors.delivery_date) setFormErrors({ ...formErrors, delivery_date: '' });
+                    }}
+                    onKeyDown={handleDeliveryDateKeyDown}
                     error={!!formErrors.delivery_date}
                     helperText={formErrors.delivery_date}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
+                    inputRef={addressRef}
                     fullWidth
                     label="Manzil"
                     size="small"
                     placeholder="Yetkazib berish manzili"
                     value={formFields.customer_address}
                     onChange={(e) => setFormFields({ ...formFields, customer_address: e.target.value })}
+                    onKeyDown={handleAddressKeyDown}
                   />
                 </Grid>
               </Grid>
@@ -1121,26 +1261,32 @@ export default function OrderList() {
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
+                    <UzPhoneField
                       required
                       fullWidth
                       label="1-Telefon raqam"
                       size="small"
-                      placeholder="+998 XX XXX XX XX"
                       value={formFields.customer_phone}
-                      onChange={(e) => setFormFields({ ...formFields, customer_phone: e.target.value })}
+                      onChange={(formatted) => {
+                        setFormFields(prev => ({ ...prev, customer_phone: formatted }));
+                        if (formErrors.customer_phone) setFormErrors(prev => ({ ...prev, customer_phone: '' }));
+                      }}
                       error={!!formErrors.customer_phone}
-                      helperText={formErrors.customer_phone}
+                      helperText={formErrors.customer_phone || "Mas: +998 90 123 45 67"}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
+                    <UzPhoneField
                       fullWidth
-                      label="2-Telefon raqam"
+                      label="2-Telefon raqam (Ixtiyoriy)"
                       size="small"
-                      placeholder="+998 XX XXX XX XX"
                       value={formFields.customer_phone2}
-                      onChange={(e) => setFormFields({ ...formFields, customer_phone2: e.target.value })}
+                      onChange={(formatted) => {
+                        setFormFields(prev => ({ ...prev, customer_phone2: formatted }));
+                        if (formErrors.customer_phone2) setFormErrors(prev => ({ ...prev, customer_phone2: '' }));
+                      }}
+                      error={!!formErrors.customer_phone2}
+                      helperText={formErrors.customer_phone2}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
