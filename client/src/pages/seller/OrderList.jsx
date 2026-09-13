@@ -139,7 +139,7 @@ export default function OrderList() {
     customer_phone2: '',
     customer_address: '',
     delivery_date: '',
-    paid_amount: 0,
+    paid_amount: '',
     note: ''
   });
   const [formItems, setFormItems] = useState([]);
@@ -326,7 +326,7 @@ export default function OrderList() {
       customer_phone2: '',
       customer_address: '',
       delivery_date: getTodayDisplayDate(),
-      paid_amount: 0,
+      paid_amount: '',
       note: ''
     });
     setFormItems([{
@@ -559,7 +559,7 @@ export default function OrderList() {
         customer_phone2: fullOrder.customer_phone2 || '',
         customer_address: fullOrder.customer_address || '',
         delivery_date: toDisplayDate(fullOrder.delivery_date),
-        paid_amount: fullOrder.paid_amount || 0,
+        paid_amount: (fullOrder.paid_amount !== undefined && fullOrder.paid_amount !== null && fullOrder.paid_amount !== 0) ? fullOrder.paid_amount : '',
         note: fullOrder.note || '',
         status: fullOrder.status
       });
@@ -1188,13 +1188,14 @@ export default function OrderList() {
               <Grid container spacing={2} alignItems="center">
                 <Grid item xs={12} sm={6}>
                   <TextField
-                    required
                     fullWidth
                     label="To'lov summasi (so'm)"
                     type="number"
                     size="small"
-                    value={formFields.paid_amount}
-                    onChange={(e) => setFormFields({ ...formFields, paid_amount: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                    InputLabelProps={{ shrink: true }}
+                    value={formFields.paid_amount !== undefined && formFields.paid_amount !== null ? formFields.paid_amount : ''}
+                    onChange={(e) => setFormFields({ ...formFields, paid_amount: e.target.value })}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -1202,7 +1203,7 @@ export default function OrderList() {
                     Jami summa: <strong>{calculateTotal(formItems).toLocaleString()} so'm</strong>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Qoldiq: <strong>{(calculateTotal(formItems) - formFields.paid_amount).toLocaleString()} so'm</strong>
+                    Qoldiq: <strong>{Math.max(0, calculateTotal(formItems) - (parseFloat(formFields.paid_amount) || 0)).toLocaleString()} so'm</strong>
                   </Typography>
                 </Grid>
                 <Grid item xs={12}>
@@ -1433,8 +1434,10 @@ export default function OrderList() {
                           size="small"
                           label="Skidka"
                           type="number"
-                          value={item.discount_amount}
-                          onChange={(e) => handleFormItemChange(index, 'discount_amount', parseFloat(e.target.value) || 0, true)}
+                          placeholder="0"
+                          InputLabelProps={{ shrink: true }}
+                          value={item.discount_amount !== undefined && item.discount_amount !== null ? item.discount_amount : ''}
+                          onChange={(e) => handleFormItemChange(index, 'discount_amount', e.target.value, true)}
                         />
                       </Grid>
 
@@ -1478,13 +1481,14 @@ export default function OrderList() {
                 <Grid container spacing={2} alignItems="center">
                   <Grid item xs={12} sm={6}>
                     <TextField
-                      required
                       fullWidth
                       label="To'lov summasi (so'm)"
                       type="number"
                       size="small"
-                      value={formFields.paid_amount}
-                      onChange={(e) => setFormFields({ ...formFields, paid_amount: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      InputLabelProps={{ shrink: true }}
+                      value={formFields.paid_amount !== undefined && formFields.paid_amount !== null ? formFields.paid_amount : ''}
+                      onChange={(e) => setFormFields({ ...formFields, paid_amount: e.target.value })}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -1492,7 +1496,7 @@ export default function OrderList() {
                       Jami summa: <strong>{calculateTotal(editOrderData.items).toLocaleString()} so'm</strong>
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Qoldiq: <strong>{(calculateTotal(editOrderData.items) - formFields.paid_amount).toLocaleString()} so'm</strong>
+                      Qoldiq: <strong>{Math.max(0, calculateTotal(editOrderData.items) - (parseFloat(formFields.paid_amount) || 0)).toLocaleString()} so'm</strong>
                     </Typography>
                   </Grid>
                   <Grid item xs={12}>

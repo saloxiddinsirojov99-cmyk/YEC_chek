@@ -17,7 +17,7 @@ export default function AdminOrderManagement() {
   const [branchFilter, setBranchFilter] = useState('');
   const [sellerFilter, setSellerFilter] = useState('');
   const [editModal, setEditModal] = useState(null);
-  const [editForm, setEditForm] = useState({ status: '', paid_amount: 0 });
+  const [editForm, setEditForm] = useState({ status: '', paid_amount: '' });
   const [editItems, setEditItems] = useState([]);
   const [successMsg, setSuccessMsg] = useState('');
   const [receiptOrder, setReceiptOrder] = useState(null);
@@ -123,7 +123,7 @@ export default function AdminOrderManagement() {
       const fullOrder = await getOrderById(order.id);
       setEditForm({
         status: fullOrder.status,
-        paid_amount: fullOrder.paid_amount || 0,
+        paid_amount: (fullOrder.paid_amount !== undefined && fullOrder.paid_amount !== null && fullOrder.paid_amount !== 0) ? fullOrder.paid_amount : '',
         customer_name: fullOrder.customer_name,
         customer_phone: fullOrder.customer_phone,
         customer_phone2: fullOrder.customer_phone2,
@@ -372,7 +372,7 @@ export default function AdminOrderManagement() {
                       </select>
                     </div>
                     <div className="form-group"><label>Yetkazish sanasi</label><input type="date" value={editForm.delivery_date || ''} onChange={(e) => setEditForm({ ...editForm, delivery_date: e.target.value })} /></div>
-                    <div className="form-group"><label>To'langan summa (so'm)</label><input type="number" value={editForm.paid_amount} onChange={(e) => setEditForm({ ...editForm, paid_amount: parseFloat(e.target.value) || 0 })} min="0" /></div>
+                    <div className="form-group"><label>To'langan summa (so'm)</label><input type="number" placeholder="0" value={editForm.paid_amount !== undefined && editForm.paid_amount !== null ? editForm.paid_amount : ''} onChange={(e) => setEditForm({ ...editForm, paid_amount: e.target.value })} min="0" /></div>
                     <div className="form-group"><label>Izoh</label><textarea value={editForm.note || ''} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} rows="2" /></div>
                   </div>
                 </div>
