@@ -15,13 +15,12 @@ const setupRoutes = require('../routes/setup');
 const app = express();
 
 // ============================================================
-// CORS Configuration - Must allow frontend domains & preflight
+// CORS Configuration - same-origin architecture for yec-chek
 // ============================================================
 const allowedOrigins = [
-  (process.env.FRONTEND_URL || 'https://yec-sallers.vercel.app').replace(/\/$/, ''),
   'https://yec-chek.vercel.app',
-  'https://yec-saller-front.vercel.app',
   'https://yec-sallers.vercel.app',
+  'https://yec-saller-front.vercel.app',
 ];
 
 if (process.env.NODE_ENV !== 'production') {
@@ -30,7 +29,6 @@ if (process.env.NODE_ENV !== 'production') {
   allowedOrigins.push('http://localhost:5000');
 }
 
-// Also allow additional comma-separated origins from env
 if (process.env.EXTRA_ORIGINS) {
   process.env.EXTRA_ORIGINS.split(',').forEach(o => {
     const trimmed = o.trim();
@@ -42,36 +40,34 @@ if (process.env.EXTRA_ORIGINS) {
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (server-to-server, curl, mobile apps)
+    // Same-origin, server-to-server, curl
     if (!origin) return callback(null, true);
     
     const normalizedOrigin = origin.replace(/\/$/, '');
     
-    // Check whitelist
+    // Check allowed origins list
     if (allowedOrigins.includes(normalizedOrigin)) {
       return callback(null, true);
     }
     
-    // Allow ALL Vercel deployments (previews, production, etc.)
+    // Allow Vercel preview deployments
     if (normalizedOrigin.endsWith('.vercel.app')) {
       return callback(null, true);
     }
     
-    // Allow localhost and 127.0.0.1 with any port in dev/local
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
+    // Allow localhost/127.0.0.1 in non-production
+    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
       return callback(null, true);
     }
     
-    // Deny CORS - but do NOT throw error, just return false
     callback(null, false);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
-  maxAge: 86400 // 24 hours cache for preflight
+  maxAge: 86400
 }));
 
-// Explicitly handle OPTIONS preflight for all routes
 app.options('*', cors());
 
 // Body parser
@@ -86,20 +82,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Register API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/branches', branchRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/setup', setupRoutes);
-
-// Health check endpoint with DB connectivity test
-app.get('/api/health', async (req, res) => {
+// Health check handler - safe status without leaking secrets
+const healthHandler = async (req, res) => {
   const hasDB = !!process.env.DATABASE_URL;
   let dbStatus = 'not_configured';
-  let dbError = null;
 
   if (hasDB) {
     try {
@@ -107,7 +93,7 @@ app.get('/api/health', async (req, res) => {
       dbStatus = 'connected';
     } catch (err) {
       dbStatus = 'error';
-      dbError = err.message;
+      console.error('[HEALTH] Database connection error:', err.message);
     }
   }
 
@@ -117,31 +103,25 @@ app.get('/api/health', async (req, res) => {
     environment: process.env.VERCEL === '1' ? 'vercel' : 'local',
     database: hasDB ? 'postgresql' : 'not_configured',
     dbStatus,
-    dbError,
     hasJwtSecret: !!process.env.JWT_SECRET,
     uptime: process.uptime()
   });
-});
+};
 
-// Temporary debug endpoint - shows DB user count & emails (no passwords)
-app.get('/api/debug', async (req, res) => {
-  try {
-    const userCount = await prisma.user.count();
-    const productCount = await prisma.product.count();
-    const users = await prisma.user.findMany({
-      select: { id: true, email: true, role: true }
-    });
-    res.json({
-      success: true,
-      userCount,
-      productCount,
-      users,
-      dbUrlPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 40) + '...' : 'NOT_SET'
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message, stack: err.stack });
-  }
-});
+// Create API Router supporting both /api/route and direct /route
+const apiRouter = express.Router();
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/branches', branchRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/products', productRoutes);
+apiRouter.use('/orders', orderRoutes);
+apiRouter.use('/stats', statsRoutes);
+apiRouter.use('/setup', setupRoutes);
+apiRouter.get('/health', healthHandler);
+
+// Mount API router on both /api and / so all rewrites work cleanly
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 // 404 handler
 app.use((req, res) => {

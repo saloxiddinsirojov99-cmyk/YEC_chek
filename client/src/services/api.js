@@ -1,23 +1,12 @@
 // =====================================================
-// API URL - YEC Gilam tizimi
+// API URL - YEC Gilam tizimi (Same-origin arxitekturasi)
 // =====================================================
-// Priority (yuqoridan pastga):
-//   1. VITE_API_URL environment variable (Vercel Settings → Environment Variables)
-//   2. Production default: https://yec-seller.vercel.app/api
-//   3. Local development: http://localhost:5000/api
+// 1. VITE_API_URL muhit o'zgaruvchisi (kerak bo'lsa)
+// 2. Standart nisbiy URL: /api
+//    - Productionda: https://yec-chek.vercel.app/api/...
+//    - Local devda: Vite proxy orqali http://localhost:5000/api/...
 // =====================================================
-
-// API URL aniqlash tartibi:
-// 1. VITE_API_URL env variable (Vercel Dashboard → Environment Variables)
-// 2. Local dev (localhost / 127.0.0.1) → localhost:5000/api
-// 3. Production fallback → backend Vercel URL
-const isLocalDev = typeof window !== 'undefined' && 
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-const API_URL = import.meta.env.VITE_API_URL 
-  || (isLocalDev
-      ? 'http://localhost:5000/api'
-      : 'https://yec-backend-saller.vercel.app/api');
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 function getAuthHeader() {
   const token = localStorage.getItem('token');

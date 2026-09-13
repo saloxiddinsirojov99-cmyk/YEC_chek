@@ -3,10 +3,32 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "build": "cd server && npm install && npx prisma generate && cd ../client && npm install && npm run build",
+    "vercel-build": "npm run build",
     "dev": "npm --prefix server run dev",
     "backend:dev": "npm --prefix server run dev",
+    "server:dev": "npm --prefix server run dev",
+    "client:dev": "npm --prefix client run dev",
     "start": "npm --prefix server start",
     "db:push": "npm --prefix server run db:push",
     "db:seed": "npm --prefix server run db:seed"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^7.8.0",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.10",
+    "pg": "^8.23.0",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "prisma": "^7.8.0"
   }
 }
