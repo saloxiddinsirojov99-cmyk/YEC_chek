@@ -38,33 +38,27 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // 1. Search candidates by exact email OR exact name (case-insensitive)
+    const cleanId = identifier.trim();
+
+    // 1. Search candidates by email or name (case-insensitive, exact or contains)
     let candidates = await prisma.user.findMany({
       where: {
         OR: [
-          { email: { equals: identifier, mode: 'insensitive' } },
-          { name: { equals: identifier, mode: 'insensitive' } }
+          { email: { equals: cleanId, mode: 'insensitive' } },
+          { name: { equals: cleanId, mode: 'insensitive' } },
+          { name: { contains: cleanId, mode: 'insensitive' } },
+          { email: { startsWith: cleanId, mode: 'insensitive' } }
         ]
       },
       include: { branch: true }
     });
-
-    // 2. If no exact match found, also check if name starts with identifier (e.g. first name)
-    if (candidates.length === 0) {
-      candidates = await prisma.user.findMany({
-        where: {
-          name: { startsWith: identifier, mode: 'insensitive' }
-        },
-        include: { branch: true }
-      });
-    }
 
     console.log('[LOGIN] Candidates found in DB:', candidates.length);
     if (candidates.length === 0) {
       return res.status(401).json({ success: false, message: 'Email/ism yoki parol noto\'g\'ri.' });
     }
 
-    // 3. Verify password against matching candidate(s) to guarantee accurate user resolution
+    // 2. Verify password against matching candidate(s) to guarantee accurate user resolution
     let authenticatedUser = null;
     for (const candidate of candidates) {
       if (verifyPassword(password, candidate.password_hash)) {
@@ -99,12 +93,12 @@ router.post('/login', async (req, res) => {
       data: {
         token,
         user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          branch_id: user.branch_id,
-          branch_name: user.branch?.name || null
+          id: authenticatedUser.id,
+          name: authenticatedUser.name,
+          email: authenticatedUser.email,
+          role: authenticatedUser.role,
+          branch_id: authenticatedUser.branch_id,
+          branch_name: authenticatedUser.branch?.name || null
         }
       },
       message: 'Tizimga muvaffaqiyatli kirildi.'
