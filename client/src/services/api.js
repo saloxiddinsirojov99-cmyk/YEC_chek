@@ -1,12 +1,9 @@
 // =====================================================
-// API URL - YEC Gilam tizimi (Same-origin arxitekturasi)
+// API URL - Same-origin (/api)
+// Barcha so'rovlar bevosita yec-chek.vercel.app/api orqali ketadi.
+// Eski backend domenlariga ulanish butunlay to'xtatildi.
 // =====================================================
-// 1. VITE_API_URL muhit o'zgaruvchisi (kerak bo'lsa)
-// 2. Standart nisbiy URL: /api
-//    - Productionda: https://yec-chek.vercel.app/api/...
-//    - Local devda: Vite proxy orqali http://localhost:5000/api/...
-// =====================================================
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = '/api';
 
 function getAuthHeader() {
   const token = localStorage.getItem('token');
